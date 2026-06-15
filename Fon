@@ -1,0 +1,109 @@
+-- [[ 1. ระบบตรวจสอบตัวรัน Delta X (Anti-Cheat & Bypass Check) ]] --
+if not (delta or (getexecutorname and string.find(string.lower(getexecutorname()), "delta"))) then
+    game:GetService("Players").LocalPlayer:Kick("❌ สคริปต์นี้ล็อกให้ใช้งานได้เฉพาะบน Delta Executor เท่านั้น!")
+    return
+end
+
+-- [[ 2. โหลดคลังไลบรารีหน้าต่าง GUI ]] --
+local L = loadstring(game:HttpGet("https://githubusercontent.com"))()
+local W = L:CreateWindow({Title = "⚔️ Broken Blade [Delta X Exclusive] ⚔️", Center = true, AutoShow = true})
+
+-- ตั้งค่าตัวแปรเริ่มต้น (Global States)
+_G.AutoFarm, _G.BringMob, _G.FastAttack, _G.AttackDelay = false, false, false, 0.1
+
+local T1 = W:AddTab("ระบบฟาร์มหลัก")
+local T2 = W:AddTab("ตั้งค่าความเร็ว")
+local G1 = T1:AddLeftGroupbox("ฟังก์ชันช่วยเล่น")
+local G2 = T2:AddLeftGroupbox("ปรับแต่งดีเลย์")
+
+-- ฟังก์ชันสร้างปุ่มเปิด/ปิด (Toggle Helper)
+local function addToggle(id, text, varName)
+    G1:AddToggle(id, {Text = text .. " (🔴 ปิด)", Default = false, Callback = function(state)
+        _G[varName] = state
+        G1:UpdateToggle(id, {Text = text .. (state and " (🟢 เปิด)" or " (🔴 ปิด)")})
+    end})
+end
+
+addToggle("F", "ออโต้คลิก/ฟาร์มเลเวล", "AutoFarm")
+addToggle("B", "ดึงมอนสเตอร์มารวมกัน", "BringMob")
+addToggle("FA", "เร่งความเร็วโจมตี (Fast Attack)", "FastAttack")
+
+-- แถบปรับดีเลย์การตี (Slider)
+G2:AddSlider("D", {Text = "ระยะดีเลย์การตี (วินาที)", Default = 0.1, Min = 0.01, Max = 1, Rounding = 2, Callback = function(v) _G.AttackDelay = v end})
+
+-- [[ 3. สร้างปุ่มลอยสีดำ อักษรสีขาว คำว่า "โฟน" สำหรับเปิด/ปิดเมนู ]] --
+local SG = Instance.new("ScreenGui", game.CoreGui)
+local B = Instance.new("TextButton", SG)
+B.Size, B.Position = UDim2.new(0, 75, 0, 35), UDim2.new(0.05, 0, 0.15, 0)
+B.BackgroundColor3, B.TextColor3 = Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 255, 255)
+B.Text, B.TextSize, B.Font, B.Draggable = "โฟน", 16, Enum.Font.SourceSansBold, true
+Instance.new("UICorner", B).CornerRadius = UDim.new(0, 8)
+
+B.MouseButton1Click:Connect(function() 
+    L:Toggle() 
+end)
+
+-- [[ 4. ลูปจัดการระบบโจมตีอัตโนมัติและความเร็วสูง (Fast Attack Loop) ]] --
+task.spawn(function()
+    while true do
+        if (_G.AutoFarm or _G.FastAttack) then
+            pcall(function()
+                local p = game.Players.LocalPlayer
+                local tool = p.Character and p.Character:FindFirstChildOfClass("Tool")
+                if tool then
+                    tool:Activate()
+                    game:GetService("VirtualUser"):CaptureController()
+                    game:GetService("VirtualUser"):ClickButton1(Vector2.new(850, 520))
+                end
+            end)
+        end
+        -- ดึงค่าดีเลย์จากสไลเดอร์โดยตรง ป้องกันบั๊กการ Loop แข็งตัว (Script Freeze)
+        task.wait(math.max(0.01, _G.AttackDelay))
+    end
+end)
+
+-- [[ 5. ลูปจัดการระบบดึงมอนสเตอร์ (Bring Mob Loop) ]] --
+task.spawn(function()
+    while true do
+        if _G.BringMob then
+            pcall(function()
+                local p = game.Players.LocalPlayer
+                local pPos = p.Character.HumanoidRootPart.Position
+                for _, m in pairs(workspace.Enemies:GetChildren()) do
+                    if m:FindFirstChild("HumanoidRootPart") and (m.HumanoidRootPart.Position - pPos).Magnitude < 250 then
+                        m.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+                        if m:FindFirstChild("Humanoid") then 
+                            m.Humanoid.PlatformStand = true 
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(0.3) -- เว้นระยะดึงทุกๆ 0.3 วินาที เพื่อไม่ให้ตัวเกมประมวลผลหนักเกินไปจนหลุด
+    end
+end)
+
+-- [[ 6. ระบบไฟวิ่งสีรุ้ง (RGB Neon) รอบหน้าต่างพื้นหลังสีดำ ]] --
+task.spawn(function()
+    while task.wait(0.03) do
+        pcall(function()
+            local hue = (tick() % 4) / 4
+            local rainbowColor = Color3.fromHSV(hue, 1, 1)
+            
+            -- ปรับโครงสร้างเฉดสีหลักของหน้าต่างให้เป็นสีดำตามบรีฟของคุณ
+            L.BackgroundColor = Color3.fromRGB(10, 10, 10)
+            L.MainColor = Color3.fromRGB(15, 15, 15)
+            L.AccentColor = Color3.fromRGB(20, 20, 20)
+            
+            -- บังคับให้เฉพาะเส้นขอบและตัวบ่งชี้วิ่งตามสีรุ้ง RGB
+            if L.Registry and L.Registry.Theme then
+                L.Registry.Theme.Main = rainbowColor
+                L.Registry.Theme.Accent = rainbowColor
+                L.Registry.Theme.Outline = rainbowColor
+                L:UpdateTheme()
+            end
+        end)
+    end
+end)
+
+L:Notify("สคริปต์แก้บั๊กเสร็จสมบูรณ์พร้อมรันบน Delta X แล้วครับ!", 5)
