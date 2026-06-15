@@ -1,109 +1,145 @@
--- [[ 1. ระบบตรวจสอบตัวรัน Delta X (Anti-Cheat & Bypass Check) ]] --
-if not (delta or (getexecutorname and string.find(string.lower(getexecutorname()), "delta"))) then
-    game:GetService("Players").LocalPlayer:Kick("❌ สคริปต์นี้ล็อกให้ใช้งานได้เฉพาะบน Delta Executor เท่านั้น!")
-    return
-end
+-- [[ ⚔️ Broken Blade Custom UI - 100% No External Links ⚔️ ]] --
+local Players = game:Service("Players")
+local LP = Players.LocalPlayer
+local VU = game:Service("VirtualUser")
+local CoreGui = game:Service("CoreGui")
 
--- [[ 2. โหลดคลังไลบรารีหน้าต่าง GUI ]] --
-local L = loadstring(game:HttpGet("https://githubusercontent.com"))()
-local W = L:CreateWindow({Title = "⚔️ Broken Blade [Delta X Exclusive] ⚔️", Center = true, AutoShow = true})
+-- ลบ UI เก่าออกก่อนเพื่อป้องกันการซ้อนทับ
+if CoreGui:FindFirstChild("BrokenBladeHubGui") then CoreGui.BrokenBladeHubGui:Destroy() end
+if CoreGui:FindFirstChild("PhoneToggleGui") then CoreGui.PhoneToggleGui:Destroy() end
 
--- ตั้งค่าตัวแปรเริ่มต้น (Global States)
+-- สถานะฟังก์ชันช่วยเล่น
 _G.AutoFarm, _G.BringMob, _G.FastAttack, _G.AttackDelay = false, false, false, 0.1
 
-local T1 = W:AddTab("ระบบฟาร์มหลัก")
-local T2 = W:AddTab("ตั้งค่าความเร็ว")
-local G1 = T1:AddLeftGroupbox("ฟังก์ชันช่วยเล่น")
-local G2 = T2:AddLeftGroupbox("ปรับแต่งดีเลย์")
+-- [[ 1. สร้างหน้าต่างเมนูหลัก (พื้นหลังสีดำ) ]] --
+local MainGui = Instance.new("ScreenGui", CoreGui)
+MainGui.Name = "BrokenBladeHubGui"
 
--- ฟังก์ชันสร้างปุ่มเปิด/ปิด (Toggle Helper)
-local function addToggle(id, text, varName)
-    G1:AddToggle(id, {Text = text .. " (🔴 ปิด)", Default = false, Callback = function(state)
-        _G[varName] = state
-        G1:UpdateToggle(id, {Text = text .. (state and " (🟢 เปิด)" or " (🔴 ปิด)")})
-    end})
+local Frame = Instance.new("Frame", MainGui)
+Frame.Size = UDim2.new(0, 400, 0, 280)
+Frame.Position = UDim2.new(0.5, -200, 0.5, -140)
+Frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- สีดำสนิท ตามบรีฟ
+Frame.Active = true
+Frame.Draggable = true -- ลากย้ายหน้าต่างได้
+
+local UIStroke = Instance.new("UIStroke", Frame)
+UIStroke.Thickness = 3
+UIStroke.Color = Color3.fromRGB(255, 0, 0) -- ขอบเริ่มต้น
+
+local UICorner = Instance.new("UICorner", Frame)
+UICorner.CornerRadius = UDim.new(0, 10)
+
+-- หัวข้อเมนู
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "⚔️ BROKEN BLADE HUB ⚔️"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+
+-- [[ 2. ฟังก์ชันสร้างปุ่มเปิด/ปิด (ไฟเขียว 🟢 / ไฟแดง 🔴) ]] --
+local function createToggle(text, pos, varName)
+    local Btn = Instance.new("TextButton", Frame)
+    Btn.Size = UDim2.new(0, 360, 0, 40)
+    Btn.Position = pos
+    Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Btn.Text = text .. " (🔴 ปิด)"
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = 15
+    Btn.Font = Enum.Font.SourceSansBold
+    
+    local Corner = Instance.new("UICorner", Btn)
+    Corner.CornerRadius = UDim.new(0, 6)
+    
+    Btn.MouseButton1Click:Connect(function()
+        _G[varName] = not _G[varName]
+        if _G[varName] then
+            Btn.Text = text .. " (🟢 เปิด)"
+            Btn.BackgroundColor3 = Color3.fromRGB(35, 45, 35)
+        else
+            Btn.Text = text .. " (🔴 ปิด)"
+            Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        end
+    end)
 end
 
-addToggle("F", "ออโต้คลิก/ฟาร์มเลเวล", "AutoFarm")
-addToggle("B", "ดึงมอนสเตอร์มารวมกัน", "BringMob")
-addToggle("FA", "เร่งความเร็วโจมตี (Fast Attack)", "FastAttack")
+createToggle("ออโต้คลิก / ฟาร์มเลเวล", UDim2.new(0, 20, 0, 55), "AutoFarm")
+createToggle("ดึงมอนสเตอร์มารวมกัน", UDim2.new(0, 20, 0, 105), "BringMob")
+createToggle("เร่งความเร็วโจมตี (Fast Attack)", UDim2.new(0, 20, 0, 155), "FastAttack")
 
--- แถบปรับดีเลย์การตี (Slider)
-G2:AddSlider("D", {Text = "ระยะดีเลย์การตี (วินาที)", Default = 0.1, Min = 0.01, Max = 1, Rounding = 2, Callback = function(v) _G.AttackDelay = v end})
+-- ข้อความบอกระยะเวลาดีเลย์ (ปรับค่าอัตโนมัติ)
+local DelayLabel = Instance.new("TextLabel", Frame)
+DelayLabel.Size = UDim2.new(1, 0, 0, 30)
+DelayLabel.Position = UDim2.new(0, 0, 0, 205)
+DelayLabel.BackgroundTransparency = 1
+DelayLabel.Text = "ระยะดีเลย์การตี: " .. tostring(_G.AttackDelay) .. " วินาที (ปรับในโค้ดได้)"
+DelayLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+DelayLabel.TextSize = 14
+DelayLabel.Font = Enum.Font.SourceSans
 
--- [[ 3. สร้างปุ่มลอยสีดำ อักษรสีขาว คำว่า "โฟน" สำหรับเปิด/ปิดเมนู ]] --
-local SG = Instance.new("ScreenGui", game.CoreGui)
-local B = Instance.new("TextButton", SG)
-B.Size, B.Position = UDim2.new(0, 75, 0, 35), UDim2.new(0.05, 0, 0.15, 0)
-B.BackgroundColor3, B.TextColor3 = Color3.fromRGB(15, 15, 15), Color3.fromRGB(255, 255, 255)
-B.Text, B.TextSize, B.Font, B.Draggable = "โฟน", 16, Enum.Font.SourceSansBold, true
-Instance.new("UICorner", B).CornerRadius = UDim.new(0, 8)
+-- [[ 3. ปุ่มลอยเปิด/ปิดเมนูบนหน้าจอ "สีดำ อักษรสีขาว เขียนว่า โฟน" ]] --
+local ToggleGui = Instance.new("ScreenGui", CoreGui)
+ToggleGui.Name = "PhoneToggleGui"
 
-B.MouseButton1Click:Connect(function() 
-    L:Toggle() 
+local PhoneBtn = Instance.new("TextButton", ToggleGui)
+PhoneBtn.Size = UDim2.new(0, 75, 0, 35)
+PhoneBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+PhoneBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- สีดำสนิท ตามบรีฟ
+PhoneBtn.Text = "โฟน"
+PhoneBtn.TextColor3 = Color3.fromRGB(255, 255, 255) -- ตัวอักษรสีขาว ตามบรีฟ
+PhoneBtn.TextSize = 16
+PhoneBtn.Font = Enum.Font.SourceSansBold
+PhoneBtn.Draggable = true
+
+local PhoneCorner = Instance.new("UICorner", PhoneBtn)
+PhoneCorner.CornerRadius = UDim.new(0, 8)
+
+PhoneBtn.MouseButton1Click:Connect(function()
+    Frame.Visible = not Frame.Visible
 end)
 
--- [[ 4. ลูปจัดการระบบโจมตีอัตโนมัติและความเร็วสูง (Fast Attack Loop) ]] --
+-- [[ 4. ลูปฟังก์ชันโจมตีและเร่งความเร็ว (Fast Attack Loop) ]] --
 task.spawn(function()
     while true do
         if (_G.AutoFarm or _G.FastAttack) then
             pcall(function()
-                local p = game.Players.LocalPlayer
-                local tool = p.Character and p.Character:FindFirstChildOfClass("Tool")
+                local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
                 if tool then
                     tool:Activate()
-                    game:GetService("VirtualUser"):CaptureController()
-                    game:GetService("VirtualUser"):ClickButton1(Vector2.new(850, 520))
+                    VU:CaptureController()
+                    VU:ClickButton1(Vector2.new(850, 520))
                 end
             end)
         end
-        -- ดึงค่าดีเลย์จากสไลเดอร์โดยตรง ป้องกันบั๊กการ Loop แข็งตัว (Script Freeze)
         task.wait(math.max(0.01, _G.AttackDelay))
     end
 end)
 
--- [[ 5. ลูปจัดการระบบดึงมอนสเตอร์ (Bring Mob Loop) ]] --
+-- [[ 5. ลูปฟังก์ชันดึงมอนสเตอร์ (Bring Mob Loop) ]] --
 task.spawn(function()
     while true do
         if _G.BringMob then
             pcall(function()
-                local p = game.Players.LocalPlayer
-                local pPos = p.Character.HumanoidRootPart.Position
+                local pPos = LP.Character.HumanoidRootPart.Position
                 for _, m in pairs(workspace.Enemies:GetChildren()) do
                     if m:FindFirstChild("HumanoidRootPart") and (m.HumanoidRootPart.Position - pPos).Magnitude < 250 then
-                        m.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
-                        if m:FindFirstChild("Humanoid") then 
-                            m.Humanoid.PlatformStand = true 
-                        end
+                        m.HumanoidRootPart.CFrame = LP.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+                        if m:FindFirstChild("Humanoid") then m.Humanoid.PlatformStand = true end
                     end
                 end
             end)
         end
-        task.wait(0.3) -- เว้นระยะดึงทุกๆ 0.3 วินาที เพื่อไม่ให้ตัวเกมประมวลผลหนักเกินไปจนหลุด
+        task.wait(0.3)
     end
 end)
 
--- [[ 6. ระบบไฟวิ่งสีรุ้ง (RGB Neon) รอบหน้าต่างพื้นหลังสีดำ ]] --
+-- [[ 6. ลูปขอบไฟวิ่งสีรุ้งรอบหน้าต่าง (RGB Neon Border) ]] --
 task.spawn(function()
-    while task.wait(0.03) do
+    while task.wait(0.02) do
         pcall(function()
             local hue = (tick() % 4) / 4
-            local rainbowColor = Color3.fromHSV(hue, 1, 1)
-            
-            -- ปรับโครงสร้างเฉดสีหลักของหน้าต่างให้เป็นสีดำตามบรีฟของคุณ
-            L.BackgroundColor = Color3.fromRGB(10, 10, 10)
-            L.MainColor = Color3.fromRGB(15, 15, 15)
-            L.AccentColor = Color3.fromRGB(20, 20, 20)
-            
-            -- บังคับให้เฉพาะเส้นขอบและตัวบ่งชี้วิ่งตามสีรุ้ง RGB
-            if L.Registry and L.Registry.Theme then
-                L.Registry.Theme.Main = rainbowColor
-                L.Registry.Theme.Accent = rainbowColor
-                L.Registry.Theme.Outline = rainbowColor
-                L:UpdateTheme()
-            end
+            UIStroke.Color = Color3.fromHSV(hue, 1, 1) -- สั่งให้ขอบหนาวิ่งเป็นสายรุ้ง
         end)
     end
 end)
-
-L:Notify("สคริปต์แก้บั๊กเสร็จสมบูรณ์พร้อมรันบน Delta X แล้วครับ!", 5)
